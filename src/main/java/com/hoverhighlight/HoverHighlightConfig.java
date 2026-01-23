@@ -11,24 +11,66 @@ import java.awt.Color;
 @ConfigGroup("hoverhighlight")
 public interface HoverHighlightConfig extends Config
 {
+	enum HighlightStyle
+	{
+		FILLED("Filled"),
+		BORDER("Border only");
+
+		private final String name;
+
+		HighlightStyle(String name)
+		{
+			this.name = name;
+		}
+
+		@Override
+		public String toString()
+		{
+			return name;
+		}
+	}
+
+	@ConfigItem(
+		keyName = "highlightStyle",
+		name = "Style",
+		description = "Filled: works with transparent inventory. Border: works with opaque inventory.",
+		position = 1
+	)
+	default HighlightStyle highlightStyle()
+	{
+		return HighlightStyle.BORDER;
+	}
+
 	@Alpha
 	@ConfigItem(
 		keyName = "glowColor",
-		name = "Glow Color",
-		description = "The color of the glow effect behind hovered items",
-		position = 1
+		name = "Highlight Color",
+		description = "The color of the highlight effect",
+		position = 2
 	)
 	default Color glowColor()
 	{
-		return new Color(25, 23, 21, 128);
+		return new Color(25, 23, 21, 170);
+	}
+
+	@Range(min = 1, max = 10)
+	@ConfigItem(
+		keyName = "borderWidth",
+		name = "Border Width",
+		description = "Width of the border highlight (only applies to Border style)",
+		position = 3
+	)
+	default int borderWidth()
+	{
+		return 2;
 	}
 
 	@Range(min = 0, max = 20)
 	@ConfigItem(
 		keyName = "glowPadding",
-		name = "Glow Padding",
-		description = "How many pixels the glow extends beyond the item bounds",
-		position = 2
+		name = "Padding",
+		description = "How many pixels the highlight extends beyond the item bounds",
+		position = 4
 	)
 	default int glowPadding()
 	{

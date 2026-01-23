@@ -9,20 +9,26 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 
 import javax.inject.Inject;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Stroke;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * Overlay that renders a glow behind inventory slots on mouse hover.
+ * Overlay that renders a highlight on inventory slots on mouse hover.
  */
 public class HoverHighlightOverlay extends Overlay
 {
+	private static final float ABOVE_WIDGETS_OPACITY_MULTIPLIER = 0.5f;
+
 	private final Client client;
 	private final HoverHighlightConfig config;
+	private boolean isAboveWidgets = true;
 
 	@Inject
 	public HoverHighlightOverlay(Client client, HoverHighlightConfig config)
@@ -30,8 +36,22 @@ public class HoverHighlightOverlay extends Overlay
 		this.client = client;
 		this.config = config;
 
-		setLayer(OverlayLayer.UNDER_WIDGETS);
 		setPosition(OverlayPosition.DYNAMIC);
+		setLayer(OverlayLayer.ABOVE_WIDGETS);
+	}
+
+	public void updateLayer(boolean transparentSidePanel)
+	{
+		if (transparentSidePanel)
+		{
+			setLayer(OverlayLayer.UNDER_WIDGETS);
+			isAboveWidgets = false;
+		}
+		else
+		{
+			setLayer(OverlayLayer.ABOVE_WIDGETS);
+			isAboveWidgets = true;
+		}
 	}
 
 	@Override
@@ -68,10 +88,6 @@ public class HoverHighlightOverlay extends Overlay
 		return null;
 	}
 
-	/**
-	 * Renders glow for items in the main inventory.
-	 * @return true if a glow was rendered
-	 */
 	private boolean renderForInventory(Graphics2D graphics, Point mousePoint)
 	{
 		Widget inventoryWidget = client.getWidget(InterfaceID.Inventory.ITEMS);
@@ -83,10 +99,6 @@ public class HoverHighlightOverlay extends Overlay
 		return renderForWidget(graphics, mousePoint, inventoryWidget);
 	}
 
-	/**
-	 * Renders glow for items in the bank-side inventory.
-	 * @return true if a glow was rendered
-	 */
 	private boolean renderForBankInventory(Graphics2D graphics, Point mousePoint)
 	{
 		Widget bankSideWidget = client.getWidget(InterfaceID.Bankside.ITEMS);
@@ -98,10 +110,6 @@ public class HoverHighlightOverlay extends Overlay
 		return renderForWidget(graphics, mousePoint, bankSideWidget);
 	}
 
-	/**
-	 * Checks item slots for mouse hover and renders glow.
-	 * @return true if a glow was rendered
-	 */
 	private boolean renderForWidget(Graphics2D graphics, Point mousePoint, Widget parentWidget)
 	{
 		if (!parentWidget.isIf3())
@@ -140,7 +148,7 @@ public class HoverHighlightOverlay extends Overlay
 
 			if (bounds.contains(mousePoint))
 			{
-				drawGlow(graphics, bounds);
+				drawHighlight(graphics, bounds);
 				return true;
 			}
 		}
@@ -148,15 +156,26 @@ public class HoverHighlightOverlay extends Overlay
 		return false;
 	}
 
-	/**
-	 * Draws a glowing rectangle behind the item.
-	 */
-	private void drawGlow(Graphics2D graphics, Rectangle bounds)
+	private void drawHighlight(Graphics2D graphics, Rectangle bounds)
 	{
-		Color glowColor = config.glowColor();
+		Color baseColor = config.glowColor();
 		int padding = config.glowPadding();
+		HoverHighlightConfig.HighlightStyle style = config.highlightStyle();
 
-		RoundRectangle2D glowRect = new RoundRectangle2D.Float(
+		Color color;
+		if (isAboveWidgets)
+		{
+			int reducedAlpha = (int) (baseColor.getAlpha() * ABOVE_WIDGETS_OPACITY_MULTIPLIER);
+			color = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), reducedAlpha);
+		}
+		else
+		{
+			color = baseColor;
+		}
+
+		graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+		RoundRectangle2D rect = new RoundRectangle2D.Float(
 			bounds.x - padding,
 			bounds.y - padding,
 			bounds.width + (padding * 2),
@@ -165,7 +184,18 @@ public class HoverHighlightOverlay extends Overlay
 			7
 		);
 
-		graphics.setColor(glowColor);
-		graphics.fill(glowRect);
+		graphics.setColor(color);
+
+		if (style == HoverHighlightConfig.HighlightStyle.FILLED)
+		{
+			graphics.fill(rect);
+		}
+		else
+		{
+			Stroke originalStroke = graphics.getStroke();
+			graphics.setStroke(new BasicStroke(config.borderWidth()));
+			graphics.draw(rect);
+			graphics.setStroke(originalStroke);
+		}
 	}
 }
