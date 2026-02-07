@@ -50,7 +50,7 @@ public interface HoverHighlightConfig extends Config
 	)
 	default Color glowColor()
 	{
-		return new Color(25, 23, 21, 170);
+		return new Color(107, 97, 97, 255);
 	}
 
 	@Range(min = 1, max = 10)
@@ -62,7 +62,7 @@ public interface HoverHighlightConfig extends Config
 	)
 	default int borderWidth()
 	{
-		return 2;
+		return 3;
 	}
 
 	@Range(min = 0, max = 20)
