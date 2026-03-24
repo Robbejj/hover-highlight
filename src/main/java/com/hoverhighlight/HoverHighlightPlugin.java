@@ -16,8 +16,8 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 @PluginDescriptor(
 	name = "Hover Highlight",
-	description = "Highlights inventory items with a customizable glow when hovering over them",
-	tags = {"inventory", "highlight", "hover", "glow", "mouse"}
+	description = "Highlights items, prayers and spells with a customizable glow when hovering over",
+	tags = {"inventory", "highlight", "hover", "glow", "mouse", "prayer", "spellbook"}
 )
 public class HoverHighlightPlugin extends Plugin
 {
@@ -33,6 +33,11 @@ public class HoverHighlightPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
+		if (client.getGameState() == GameState.LOGGED_IN)
+		{
+			boolean transparentSidePanel = client.getVarbitValue(VarbitID.SIDE_TRANSPARENCY) == 0;
+			overlay.updateLayer(transparentSidePanel);
+		}
 		overlayManager.add(overlay);
 	}
 
@@ -62,9 +67,10 @@ public class HoverHighlightPlugin extends Plugin
 
 	private void updateOverlayLayer()
 	{
+		overlayManager.remove(overlay);
 		boolean transparentSidePanel = client.getVarbitValue(VarbitID.SIDE_TRANSPARENCY) == 0;
 		overlay.updateLayer(transparentSidePanel);
-		overlayManager.resetOverlay(overlay);
+		overlayManager.add(overlay);
 	}
 
 	@Provides

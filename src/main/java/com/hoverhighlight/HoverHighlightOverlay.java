@@ -1,8 +1,13 @@
 package com.hoverhighlight;
 
 import net.runelite.api.Client;
+import net.runelite.api.EnumComposition;
+import net.runelite.api.EnumID;
 import net.runelite.api.GameState;
+import net.runelite.api.ItemComposition;
+import net.runelite.api.ParamID;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -20,7 +25,7 @@ import java.awt.Stroke;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * Overlay that renders a highlight on inventory slots on mouse hover.
+ * Overlay that renders a highlight on side panel items on mouse hover.
  */
 public class HoverHighlightOverlay extends Overlay
 {
@@ -75,12 +80,10 @@ public class HoverHighlightOverlay extends Overlay
 
 		Point mousePoint = new Point(mousePos.getX(), mousePos.getY());
 
-		if (renderForInventory(graphics, mousePoint))
-		{
-			return null;
-		}
-
-		if (renderForBankInventory(graphics, mousePoint))
+		if (renderForInventory(graphics, mousePoint)
+			|| renderForBankInventory(graphics, mousePoint)
+			|| renderForPrayerBook(graphics, mousePoint)
+			|| renderForSpellBook(graphics, mousePoint))
 		{
 			return null;
 		}
@@ -90,6 +93,11 @@ public class HoverHighlightOverlay extends Overlay
 
 	private boolean renderForInventory(Graphics2D graphics, Point mousePoint)
 	{
+		if (!config.highlightInventory())
+		{
+			return false;
+		}
+
 		Widget inventoryWidget = client.getWidget(InterfaceID.Inventory.ITEMS);
 		if (inventoryWidget == null || inventoryWidget.isHidden())
 		{
@@ -101,6 +109,11 @@ public class HoverHighlightOverlay extends Overlay
 
 	private boolean renderForBankInventory(Graphics2D graphics, Point mousePoint)
 	{
+		if (!config.highlightInventory())
+		{
+			return false;
+		}
+
 		Widget bankSideWidget = client.getWidget(InterfaceID.Bankside.ITEMS);
 		if (bankSideWidget == null || bankSideWidget.isHidden())
 		{
@@ -108,6 +121,43 @@ public class HoverHighlightOverlay extends Overlay
 		}
 
 		return renderForWidget(graphics, mousePoint, bankSideWidget);
+	}
+
+	private boolean renderForPrayerBook(Graphics2D graphics, Point mousePoint)
+	{
+		if (!config.highlightPrayerBook() || client.getWidget(InterfaceID.PRAYERBOOK, 0) == null)
+		{
+			return false;
+		}
+
+		return renderFromEnum(graphics, mousePoint, getPrayerBookEnum(), ParamID.OC_PRAYER_COMPONENT);
+	}
+
+	private boolean renderForSpellBook(Graphics2D graphics, Point mousePoint)
+	{
+		if (!config.highlightSpellBook() || client.getWidget(InterfaceID.MAGIC_SPELLBOOK, 0) == null)
+		{
+			return false;
+		}
+
+		int subSpellbookId = client.getEnum(EnumID.SPELLBOOKS_SUB).getIntValue(client.getVarbitValue(VarbitID.SPELLBOOK));
+		int spellbookId = client.getEnum(subSpellbookId).getIntValue(client.getVarbitValue(VarbitID.SPELLBOOK_SUBLIST));
+
+		return renderFromEnum(graphics, mousePoint, client.getEnum(spellbookId), ParamID.SPELL_BUTTON);
+	}
+
+	private boolean renderFromEnum(Graphics2D graphics, Point mousePoint, EnumComposition itemEnum, int componentParam)
+	{
+		for (int i = 0; i < itemEnum.size(); ++i)
+		{
+			ItemComposition obj = client.getItemDefinition(itemEnum.getIntValue(i));
+			Widget widget = client.getWidget(obj.getIntValue(componentParam));
+			if (drawIfHovered(graphics, mousePoint, widget))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private boolean renderForWidget(Graphics2D graphics, Point mousePoint, Widget parentWidget)
@@ -131,29 +181,71 @@ public class HoverHighlightOverlay extends Overlay
 				continue;
 			}
 
-			net.runelite.api.Point canvasLocation = child.getCanvasLocation();
-			if (canvasLocation == null)
+			if (drawIfHovered(graphics, mousePoint, child))
 			{
-				continue;
-			}
-
-			int width = child.getWidth();
-			int height = child.getHeight();
-			if (width <= 0 || height <= 0)
-			{
-				continue;
-			}
-
-			Rectangle bounds = new Rectangle(canvasLocation.getX(), canvasLocation.getY(), width, height);
-
-			if (bounds.contains(mousePoint))
-			{
-				drawHighlight(graphics, bounds);
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	private boolean drawIfHovered(Graphics2D graphics, Point mousePoint, Widget widget)
+	{
+		if (widget == null || widget.isHidden())
+		{
+			return false;
+		}
+
+		net.runelite.api.Point canvasLocation = widget.getCanvasLocation();
+		if (canvasLocation == null)
+		{
+			return false;
+		}
+
+		int width = widget.getWidth();
+		int height = widget.getHeight();
+		if (width <= 0 || height <= 0)
+		{
+			return false;
+		}
+
+		Rectangle bounds = new Rectangle(canvasLocation.getX(), canvasLocation.getY(), width, height);
+		if (!bounds.contains(mousePoint))
+		{
+			return false;
+		}
+
+		drawHighlight(graphics, bounds);
+		return true;
+	}
+
+	private EnumComposition getPrayerBookEnum()
+	{
+		if (client.getVarbitValue(VarbitID.PRAYERBOOK) == 1)
+		{
+			return client.getEnum(EnumID.PRAYERS_RUINOUS);
+		}
+
+		boolean deadeye = client.getVarbitValue(VarbitID.PRAYER_DEADEYE_UNLOCKED) != 0;
+		boolean vigour = client.getVarbitValue(VarbitID.PRAYER_MYSTIC_VIGOUR_UNLOCKED) != 0;
+
+		if (deadeye && vigour)
+		{
+			return client.getEnum(EnumID.PRAYERS_NORMAL_DEADEYE_MYSTIC_VIGOUR);
+		}
+		else if (deadeye)
+		{
+			return client.getEnum(EnumID.PRAYERS_NORMAL_DEADEYE);
+		}
+		else if (vigour)
+		{
+			return client.getEnum(EnumID.PRAYERS_NORMAL_MYSTIC_VIGOUR);
+		}
+		else
+		{
+			return client.getEnum(EnumID.PRAYERS_NORMAL);
+		}
 	}
 
 	private void drawHighlight(Graphics2D graphics, Rectangle bounds)

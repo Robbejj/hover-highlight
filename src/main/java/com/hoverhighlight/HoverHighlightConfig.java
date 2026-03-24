@@ -4,6 +4,7 @@ import net.runelite.client.config.Alpha;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
 
 import java.awt.Color;
@@ -33,7 +34,7 @@ public interface HoverHighlightConfig extends Config
 	@ConfigItem(
 		keyName = "highlightStyle",
 		name = "Style",
-		description = "Filled: works with transparent inventory. Border: works with opaque inventory.",
+		description = "Filled works best with transparent side panel, Border with opaque side panel.",
 		position = 1
 	)
 	default HighlightStyle highlightStyle()
@@ -75,5 +76,48 @@ public interface HoverHighlightConfig extends Config
 	default int glowPadding()
 	{
 		return 2;
+	}
+
+	@ConfigSection(
+		name = "Interfaces",
+		description = "Choose which interfaces to show the highlight in",
+		position = 5
+	)
+	String interfacesSection = "interfaces";
+
+	@ConfigItem(
+		keyName = "highlightInventory",
+		name = "Inventory",
+		description = "Highlight hovered items in the inventory",
+		section = "interfaces",
+		position = 1
+	)
+	default boolean highlightInventory()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightPrayerBook",
+		name = "Prayer book",
+		description = "Highlight hovered prayers in the prayer book",
+		section = "interfaces",
+		position = 2
+	)
+	default boolean highlightPrayerBook()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "highlightSpellBook",
+		name = "Spell book",
+		description = "Highlight hovered spells in the spell book",
+		section = "interfaces",
+		position = 3
+	)
+	default boolean highlightSpellBook()
+	{
+		return true;
 	}
 }
