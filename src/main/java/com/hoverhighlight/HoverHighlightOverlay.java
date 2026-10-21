@@ -62,23 +62,11 @@ public class HoverHighlightOverlay extends Overlay
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if (client.getGameState() != GameState.LOGGED_IN)
+		Point mousePoint = getMousePoint();
+		if (mousePoint == null)
 		{
 			return null;
 		}
-
-		if (client.getDraggedWidget() != null)
-		{
-			return null;
-		}
-
-		net.runelite.api.Point mousePos = client.getMouseCanvasPosition();
-		if (mousePos == null)
-		{
-			return null;
-		}
-
-		Point mousePoint = new Point(mousePos.getX(), mousePos.getY());
 
 		if (renderForInventory(graphics, mousePoint)
 			|| renderForBankInventory(graphics, mousePoint)
@@ -89,6 +77,25 @@ public class HoverHighlightOverlay extends Overlay
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the mouse position, or null if nothing should be highlighted this frame.
+	 */
+	protected Point getMousePoint()
+	{
+		if (client.getGameState() != GameState.LOGGED_IN || client.getDraggedWidget() != null)
+		{
+			return null;
+		}
+
+		net.runelite.api.Point mousePos = client.getMouseCanvasPosition();
+		if (mousePos == null)
+		{
+			return null;
+		}
+
+		return new Point(mousePos.getX(), mousePos.getY());
 	}
 
 	private boolean renderForInventory(Graphics2D graphics, Point mousePoint)
@@ -160,16 +167,21 @@ public class HoverHighlightOverlay extends Overlay
 		return false;
 	}
 
-	private boolean renderForWidget(Graphics2D graphics, Point mousePoint, Widget parentWidget)
+	protected boolean renderForWidget(Graphics2D graphics, Point mousePoint, Widget parentWidget)
 	{
 		if (!parentWidget.isIf3())
 		{
 			return false;
 		}
 
-		for (int i = 0; i < 28; ++i)
+		Widget[] children = parentWidget.getChildren();
+		if (children == null)
 		{
-			Widget child = parentWidget.getChild(i);
+			return false;
+		}
+
+		for (Widget child : children)
+		{
 			if (child == null)
 			{
 				continue;
@@ -227,28 +239,10 @@ public class HoverHighlightOverlay extends Overlay
 			return client.getEnum(EnumID.PRAYERS_RUINOUS);
 		}
 
-		boolean deadeye = client.getVarbitValue(VarbitID.PRAYER_DEADEYE_UNLOCKED) != 0;
-		boolean vigour = client.getVarbitValue(VarbitID.PRAYER_MYSTIC_VIGOUR_UNLOCKED) != 0;
-
-		if (deadeye && vigour)
-		{
-			return client.getEnum(EnumID.PRAYERS_NORMAL_DEADEYE_MYSTIC_VIGOUR);
-		}
-		else if (deadeye)
-		{
-			return client.getEnum(EnumID.PRAYERS_NORMAL_DEADEYE);
-		}
-		else if (vigour)
-		{
-			return client.getEnum(EnumID.PRAYERS_NORMAL_MYSTIC_VIGOUR);
-		}
-		else
-		{
-			return client.getEnum(EnumID.PRAYERS_NORMAL);
-		}
+		return client.getEnum(EnumID.PRAYERS_NORMAL);
 	}
 
-	private void drawHighlight(Graphics2D graphics, Rectangle bounds)
+	protected void drawHighlight(Graphics2D graphics, Rectangle bounds)
 	{
 		Color baseColor = config.glowColor();
 		int padding = config.glowPadding();

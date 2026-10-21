@@ -98,11 +98,23 @@ public interface HoverHighlightConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "highlightBank",
+		name = "Bank",
+		description = "Highlight hovered items in the bank",
+		section = "interfaces",
+		position = 2
+	)
+	default boolean highlightBank()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 		keyName = "highlightPrayerBook",
 		name = "Prayer book",
 		description = "Highlight hovered prayers in the prayer book",
 		section = "interfaces",
-		position = 2
+		position = 3
 	)
 	default boolean highlightPrayerBook()
 	{
@@ -114,7 +126,7 @@ public interface HoverHighlightConfig extends Config
 		name = "Spell book",
 		description = "Highlight hovered spells in the spell book",
 		section = "interfaces",
-		position = 3
+		position = 4
 	)
 	default boolean highlightSpellBook()
 	{
